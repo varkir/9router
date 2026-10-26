@@ -1,0 +1,12 @@
+# Rahasia — JANGAN di-commit
+.env
+.env.*
+!.env.example
+
+# Data runtime 9router (db/data.sqlite, API key, akun provider, log)
+data/
+
+# Backup & sampah lokal
+*.tar.gz
+*.log
+.DS_Store
