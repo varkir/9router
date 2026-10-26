@@ -12,6 +12,9 @@ Node 22) menjadi image Podman dan menjalankannya secara **manual** dengan `podma
 ## Fakta deployment (jangan diubah tanpa diminta)
 
 - Image: `localhost/9router:latest`, container: `9router`
+- Registry: `ghcr.io/varkir/9router` (GitHub Packages, tertaut ke repo `varkir/9router` lewat
+  label `org.opencontainers.image.source`). Tag: `latest`, `<versi>`, `<versi>-<sha7 upstream>`.
+  `build.sh` memberi tag yang sama ke `localhost/9router:*`.
 - Network: `varkir` (bridge 10.20.0.0/24, gw 10.20.0.1, DNS aktif), IP: `10.20.0.13`
 - Port: `20128` (container) dipublish ke host `20128`
 - Data: `/mnt/varkir/Podman/9router/data` → `/app/data` (`DATA_DIR`)
@@ -35,7 +38,8 @@ podman run -d --name 9router --network varkir --ip 10.20.0.13 -p 20128:20128 \
 
 | File | Isi |
 |------|-----|
-| `Containerfile` | Multi-stage: `source` (git clone `NINEROUTER_REF`) → `builder` (`npm install` + `next build`) → `runner` (standalone + tini + ffmpeg) |
+| `Containerfile` | Multi-stage: `source` (git clone `NINEROUTER_REF`, dikunci ke `NINEROUTER_COMMIT`) → `builder` (`npm install` + `next build`) → `runner` (standalone + tini + ffmpeg) |
+| `build.sh` | Resolusi commit upstream (`git ls-remote`) + versi (`package.json` via raw.githubusercontent) → `podman build --format docker` → tag lokal + GHCR → `podman push` (`PUSH=0` untuk lewati) |
 | `entrypoint.sh` | Root → `chown` data lalu `su-exec node`; non-root → langsung `exec` |
 | `.env.example` | Template env; `.env` asli tidak boleh di-commit |
 | `.containerignore` | Mengecualikan `.env` dan `data/` dari build context |
@@ -45,7 +49,14 @@ podman run -d --name 9router --network varkir --ip 10.20.0.13 -p 20128:20128 \
 
 1. Source upstream **tidak** disalin ke folder ini; selalu di-clone saat build
    (`--build-arg NINEROUTER_REF=<branch|tag>`; kosong = branch default `master`). Jangan menambahkan source ke sini.
-2. Build selalu dengan `--format docker` (kalau tidak, `HEALTHCHECK` dibuang Podman).
+2. Build selalu lewat `./build.sh` (atau manual dengan `--format docker`; tanpa itu
+   `HEALTHCHECK` dibuang Podman). Jangan pakai `podman build` biasa tanpa
+   `NINEROUTER_COMMIT` lalu berharap dapat source terbaru: layer `git clone` akan
+   diambil dari cache. `build.sh` mengisi `NINEROUTER_COMMIT` sehingga cache otomatis
+   batal saat upstream berubah.
+   Push ke GHCR hanya bila pengguna meminta upload/update; image yang di-push harus
+   image yang sama dengan yang dijalankan container `9router`.
+   Jangan menimpa tag `<versi>-<sha>` yang sudah ada dengan isi berbeda (tag ini dipakai untuk rollback).
 3. Jika upstream mengubah `Dockerfile`-nya (daftar `COPY` di stage runner, mis. modul
    `node_modules/*` tambahan yang tidak ter-trace), samakan stage `runner` di `Containerfile`.
    Cek: `https://github.com/decolua/9router/blob/master/Dockerfile`.
@@ -56,12 +67,14 @@ podman run -d --name 9router --network varkir --ip 10.20.0.13 -p 20128:20128 \
    lain di `/mnt/varkir/Podman/` (mis. `voxcpm/run.sh`).
 7. Setelah mengubah `Containerfile`/`entrypoint.sh`, verifikasi:
    ```bash
-   podman build --format docker -t localhost/9router:latest .
+   PUSH=0 ./build.sh               # uji dulu tanpa upload
    podman rm -f 9router && <perintah run kanonik>
    podman healthcheck run 9router
    curl -sf http://localhost:20128/api/health
    ls -ln data/   # pemilik harus uid 1000
    ```
+   Baru setelah lolos: `./build.sh` (build dari cache + push).
+8. Image GHCR hanya `linux/amd64` (dibangun di server ini). Jangan klaim dukungan arm64.
 
 ## Catatan teknis upstream
 

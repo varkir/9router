@@ -3,8 +3,13 @@
 # Source di-clone langsung dari GitHub saat build, jadi build context cukup
 # folder ini saja:
 #
-#   podman build -t localhost/9router:latest .
-#   podman build --build-arg NINEROUTER_REF=v0.5.109 -t localhost/9router:0.5.109 .
+#   ./build.sh                       (disarankan: kunci commit + tag + push GHCR)
+#   podman build --format docker -t localhost/9router:latest .
+#   podman build --format docker --build-arg NINEROUTER_REF=v0.5.109 -t localhost/9router:0.5.109 .
+#
+# NINEROUTER_COMMIT (sha lengkap) mengunci source ke satu commit. build.sh
+# mengisinya dari "git ls-remote", jadi cache layer clone otomatis batal saat
+# upstream punya commit baru dan tetap dipakai bila belum berubah.
 #
 # Berbeda dengan Dockerfile upstream, image ini:
 #   - bisa jalan sebagai root (lalu turun ke user node) ATAU langsung sebagai
@@ -18,9 +23,13 @@ ARG NPM_REGISTRY=https://registry.npmjs.org/
 FROM ${NODE_IMAGE} AS source
 ARG NINEROUTER_REPO=https://github.com/decolua/9router.git
 ARG NINEROUTER_REF=
+ARG NINEROUTER_COMMIT=
 RUN apk add --no-cache git
 WORKDIR /src
 RUN git clone --depth 1 ${NINEROUTER_REF:+--branch "$NINEROUTER_REF"} "${NINEROUTER_REPO}" . \
+ && if [ -n "$NINEROUTER_COMMIT" ] && [ "$(git rev-parse HEAD)" != "$NINEROUTER_COMMIT" ]; then \
+      git fetch --depth 1 origin "$NINEROUTER_COMMIT" && git checkout -q FETCH_HEAD; \
+    fi \
  && git rev-parse HEAD > /src/.git-commit \
  && rm -rf .git
 
@@ -77,10 +86,17 @@ RUN chmod 0755 /usr/local/bin/entrypoint.sh \
  && chown -R node:node /app
 
 ARG NINEROUTER_REF=
+ARG NINEROUTER_COMMIT=
+ARG IMAGE_VERSION=
+ARG IMAGE_SOURCE=https://github.com/varkir/9router
+# image.source dipakai GHCR untuk menautkan package ke repo varkir/9router.
 LABEL org.opencontainers.image.title="9router" \
-      org.opencontainers.image.description="9Router AI router + dashboard (build Podman lokal)" \
-      org.opencontainers.image.source="https://github.com/decolua/9router" \
-      org.opencontainers.image.version="${NINEROUTER_REF:-master}"
+      org.opencontainers.image.description="9Router AI router + dashboard untuk Podman (packaging tidak resmi decolua/9router)" \
+      org.opencontainers.image.source="${IMAGE_SOURCE}" \
+      org.opencontainers.image.url="https://github.com/decolua/9router" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.version="${IMAGE_VERSION}" \
+      org.opencontainers.image.revision="${NINEROUTER_COMMIT}"
 
 VOLUME ["/app/data"]
 EXPOSE 20128
