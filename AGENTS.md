@@ -11,10 +11,10 @@ Node 22) menjadi image Podman dan menjalankannya secara **manual** dengan `podma
 
 ## Fakta deployment (jangan diubah tanpa diminta)
 
-- Image: `localhost/9router:latest`, container: `9router`
+- Image: `ghcr.io/varkir/9router:latest` (dipakai langsung oleh container; tidak ada tag `localhost/9router`), container: `9router`
 - Registry: `ghcr.io/varkir/9router` (GitHub Packages, tertaut ke repo `varkir/9router` lewat
   label `org.opencontainers.image.source`). Tag: `latest`, `<versi>`, `<versi>-<sha7 upstream>`.
-  `build.sh` memberi tag yang sama ke `localhost/9router:*`.
+  Halaman package menampilkan tag yang terakhir di-push, jadi `build.sh` mem-push `latest` paling akhir.
 - Network: `varkir` (bridge 10.20.0.0/24, gw 10.20.0.1, DNS aktif), IP: `10.20.0.13`
 - Port: `20128` (container) dipublish ke host `20128`
 - Data: `/mnt/varkir/Podman/9router/data` → `/app/data` (`DATA_DIR`)
@@ -31,7 +31,7 @@ Perintah run kanonik (harus selalu sama dengan README.md bagian 1):
 podman run -d --name 9router --network varkir --ip 10.20.0.13 -p 20128:20128 \
   --userns=keep-id --env-file /mnt/varkir/Podman/9router/.env \
   -v /mnt/varkir/Podman/9router/data:/app/data:Z \
-  --restart always localhost/9router:latest
+  --restart always ghcr.io/varkir/9router:latest
 ```
 
 ## File

@@ -6,8 +6,8 @@
 #   NINEROUTER_REF=v0.5.109 ./build.sh  -> build tag/branch tertentu (tanpa :latest)
 #   ./build.sh --no-cache               -> argumen tambahan diteruskan ke "podman build"
 #
-# Image lokal selalu ikut di-tag localhost/9router:<versi> (dan :latest bila REF
-# kosong), jadi perintah run kanonik tetap memakai localhost/9router:latest.
+# Tag dibuat langsung dengan nama GHCR, sehingga container di server (yang memakai
+# ghcr.io/varkir/9router:latest) langsung memakai hasil build terbaru, juga saat PUSH=0.
 #
 # Upload butuh login sekali: podman login ghcr.io  (token dengan izin write:packages)
 set -euo pipefail
@@ -35,11 +35,13 @@ RAW="${NINEROUTER_REPO/github.com/raw.githubusercontent.com}"
 VERSION="$(curl -fsSL "$RAW/$COMMIT/package.json" | sed -n 's/^  "version": "\(.*\)",$/\1/p')"
 [ -n "$VERSION" ] || { echo "Gagal membaca versi dari package.json upstream" >&2; exit 1; }
 
-tags=("$VERSION" "$VERSION-$SHORT")
-[ -z "$NINEROUTER_REF" ] && tags=(latest "${tags[@]}")
+# Urutan = urutan push. GHCR menampilkan tag yang terakhir di-push di halaman
+# package ("docker pull ...:<tag>"), jadi latest selalu paling akhir.
+tags=("$VERSION-$SHORT" "$VERSION")
+[ -z "$NINEROUTER_REF" ] && tags+=(latest)
 
 names=()
-for t in "${tags[@]}"; do names+=(-t "localhost/$IMAGE_NAME:$t" -t "$REGISTRY/$IMAGE_NAME:$t"); done
+for t in "${tags[@]}"; do names+=(-t "$REGISTRY/$IMAGE_NAME:$t"); done
 
 echo "+ 9router $VERSION (commit $SHORT) -> ${tags[*]}" >&2
 podman build --format docker \

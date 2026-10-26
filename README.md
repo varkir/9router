@@ -27,7 +27,7 @@ secara manual dengan `podman run` — tanpa compose.
 
 | Item         | Nilai                                        |
 |--------------|----------------------------------------------|
-| Image        | `localhost/9router:latest` (sama dengan `ghcr.io/varkir/9router:latest`) |
+| Image        | `ghcr.io/varkir/9router:latest`              |
 | Container    | `9router`                                    |
 | Network      | `varkir` (10.20.0.0/24, gateway 10.20.0.1)   |
 | IP container | `10.20.0.13`                                 |
@@ -51,7 +51,7 @@ cd /mnt/varkir/Podman/9router
 | `<versi>` | `ghcr.io/varkir/9router:0.5.111` | Versi 9router upstream |
 | `<versi>-<sha>` | `ghcr.io/varkir/9router:0.5.111-3a978a6` | Versi + commit upstream (tidak berubah) |
 
-Tag yang sama juga dibuat di `localhost/9router:*`, jadi perintah run di bawah
+Tag dibuat langsung dengan nama `ghcr.io/varkir/9router:*` (juga saat `PUSH=0`), jadi perintah run di bawah
 langsung memakai hasil build terbaru.
 
 ```bash
@@ -70,7 +70,7 @@ Build manual tanpa script juga bisa. `--format docker` wajib agar `HEALTHCHECK`
 ikut tersimpan di image:
 
 ```bash
-podman build --format docker -t localhost/9router:latest .
+podman build --format docker -t ghcr.io/varkir/9router:latest .
 ```
 
 ### Siapkan `.env`
@@ -99,7 +99,7 @@ podman run -d \
   --env-file /mnt/varkir/Podman/9router/.env \
   -v /mnt/varkir/Podman/9router/data:/app/data:Z \
   --restart always \
-  localhost/9router:latest
+  ghcr.io/varkir/9router:latest
 ```
 
 - `--userns=keep-id` → uid 1000 di container = user Anda di host, jadi file di
@@ -203,8 +203,8 @@ Image `linux/amd64` tersedia di GitHub Packages, jadi mesin lain tidak perlu bui
 podman pull ghcr.io/varkir/9router:latest
 ```
 
-Lalu di perintah `podman run` ganti `localhost/9router:latest` dengan
-`ghcr.io/varkir/9router:latest`. Tetap butuh `.env`: salin `.env.example` dari repo ini.
+Semua perintah `podman run` di README ini memakai `ghcr.io/varkir/9router:latest`,
+sama dengan server. Tetap butuh `.env`: salin `.env.example` dari repo ini.
 Untuk mesin ARM (Raspberry Pi, Mac Apple Silicon), build sendiri dengan `podman build`.
 
 ### Buat network `varkir` (kalau belum ada)
@@ -222,7 +222,7 @@ git clone https://github.com/varkir/9router.git ~/9router
 cd ~/9router
 cp .env.example .env && chmod 600 .env && nano .env
 mkdir -p data
-podman pull ghcr.io/varkir/9router:latest      # atau build: podman build --format docker -t localhost/9router:latest .
+podman pull ghcr.io/varkir/9router:latest      # atau build: podman build --format docker -t ghcr.io/varkir/9router:latest .
 
 podman run -d \
   --name 9router \
@@ -267,8 +267,8 @@ mengurus izin folder. Buka `http://localhost:20128`.
 ### macOS
 
 Mac Intel bisa langsung memakai image GHCR. Mac Apple Silicon (arm64) perlu
-build dulu: `podman build --format docker -t localhost/9router:latest .`, lalu
-ganti nama image di bawah.
+build dulu dengan nama yang sama, lalu jalankan perintah di bawah tanpa diubah:
+`podman build --format docker -t ghcr.io/varkir/9router:latest .`
 
 ```bash
 podman run -d --name 9router \

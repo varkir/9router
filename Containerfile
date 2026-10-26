@@ -4,8 +4,8 @@
 # folder ini saja:
 #
 #   ./build.sh                       (disarankan: kunci commit + tag + push GHCR)
-#   podman build --format docker -t localhost/9router:latest .
-#   podman build --format docker --build-arg NINEROUTER_REF=v0.5.109 -t localhost/9router:0.5.109 .
+#   podman build --format docker -t ghcr.io/varkir/9router:latest .
+#   podman build --format docker --build-arg NINEROUTER_REF=v0.5.109 -t ghcr.io/varkir/9router:0.5.109 .
 #
 # NINEROUTER_COMMIT (sha lengkap) mengunci source ke satu commit. build.sh
 # mengisinya dari "git ls-remote", jadi cache layer clone otomatis batal saat
